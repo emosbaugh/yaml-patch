@@ -24,9 +24,19 @@ func DecodePatch(bs []byte) (Patch, error) {
 // Apply returns a YAML document that has been mutated per the patch
 func (p Patch) Apply(doc []byte) ([]byte, error) {
 	var iface interface{}
+
 	err := yaml.Unmarshal(doc, &iface)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshaling doc: %s\n\n%s", string(doc), err)
+	}
+	if _, ok := iface.(map[interface{}]interface{}); ok {
+		// If this is a map, use yaml.MapSlice to preserve order
+		var ms yaml.MapSlice
+		err := yaml.Unmarshal(doc, &ms)
+		if err != nil {
+			return nil, err
+		}
+		iface = ms
 	}
 
 	var c Container

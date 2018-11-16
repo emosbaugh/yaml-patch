@@ -103,6 +103,12 @@ func findAll(prefix, findKey, findValue string, container Container) map[string]
 				matches[route] = match
 			}
 		}
+	case *nodeMapSlice:
+		for _, item := range *it {
+			for route, match := range findAll(fmt.Sprintf("%s/%s", prefix, item.Key), findKey, findValue, item.Value.(*Node).Container()) {
+				matches[route] = match
+			}
+		}
 	}
 
 	return matches

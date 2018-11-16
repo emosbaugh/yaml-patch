@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Container is the interface for performing operations on Nodes
@@ -125,6 +127,62 @@ func (n *nodeSlice) Remove(index string) error {
 	*n = ary
 	return nil
 
+}
+
+type nodeMapItem struct {
+	key  interface{}
+	node *Node
+}
+
+type nodeMapSlice yaml.MapSlice
+
+func (n *nodeMapSlice) Set(key string, val *Node) error {
+	for i, item := range *n {
+		if item.Key == key {
+			(*n)[i].Value = val
+			return nil
+		}
+	}
+	*n = append(*n, yaml.MapItem{Key: key, Value: val})
+	return nil
+}
+
+func (n *nodeMapSlice) Add(key string, val *Node) error {
+	for i, item := range *n {
+		if item.Key == key {
+			(*n)[i].Value = val
+			return nil
+		}
+	}
+	*n = append(*n, yaml.MapItem{Key: key, Value: val})
+	return nil
+}
+
+func (n *nodeMapSlice) Get(key string) (*Node, error) {
+	for _, item := range *n {
+		if item.Key == key {
+			node, _ := item.Value.(*Node)
+			return node, nil
+		}
+	}
+	return nil, nil
+}
+
+func (n *nodeMapSlice) Remove(key string) error {
+	for i, item := range *n {
+		if item.Key == key {
+			cur := *n
+
+			ary := make(nodeMapSlice, len(cur)-1)
+
+			copy(ary[0:i], cur[0:i])
+			copy(ary[i:], cur[i+1:])
+
+			*n = ary
+			return nil
+		}
+	}
+	return fmt.Errorf("Unable to remove nonexistent key: %s", key)
 }
 
 func findContainer(c Container, path *OpPath) (Container, string, error) {

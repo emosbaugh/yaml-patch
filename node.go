@@ -1,6 +1,10 @@
 package yamlpatch
 
-import "reflect"
+import (
+	"reflect"
+
+	yaml "gopkg.in/yaml.v2"
+)
 
 // Node holds a YAML document that has not yet been processed into a NodeMap or
 // NodeSlice
@@ -36,6 +40,16 @@ func NewNodeFromSlice(s []interface{}) *Node {
 	}
 }
 
+// NewNodeFromMapSlice returns a new Node based on a yaml.MapSlice
+func NewNodeFromMapSlice(ms yaml.MapSlice) *Node {
+	var raw interface{}
+	raw = ms
+
+	return &Node{
+		raw: &raw,
+	}
+}
+
 // MarshalYAML implements yaml.Marshaler, and returns the correct interface{}
 // to be marshaled
 func (n *Node) MarshalYAML() (interface{}, error) {
@@ -57,6 +71,14 @@ func (n *Node) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	err := unmarshal(&data)
 	if err != nil {
 		return err
+	}
+	if _, ok := data.(map[interface{}]interface{}); ok {
+		var ms yaml.MapSlice
+		err := unmarshal(&ms)
+		if err != nil {
+			return err
+		}
+		data = ms
 	}
 
 	n.raw = &data
@@ -89,6 +111,14 @@ func (n *Node) Container() Container {
 		for k := range rt {
 			v := rt[k]
 			c[k] = NewNode(&v)
+		}
+	case yaml.MapSlice:
+		c := make(nodeMapSlice, len(rt))
+		n.container = &c
+
+		for i := range rt {
+			item := rt[i]
+			c[i] = yaml.MapItem{Key: item.Key, Value: NewNode(&item.Value)}
 		}
 	}
 
